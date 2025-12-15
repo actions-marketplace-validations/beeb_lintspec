@@ -74,7 +74,8 @@ impl Validate for ConstructorDefinition {
     }
 }
 
-#[cfg(all(test, feature = "solar"))]
+#[cfg(test)]
+#[cfg(feature = "solar")]
 mod tests {
     use std::sync::LazyLock;
 
