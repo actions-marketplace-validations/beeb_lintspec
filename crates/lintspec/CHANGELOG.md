@@ -3,6 +3,95 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 
+## [0.17.0] - 2026-05-10
+
+### Changed
+
+
+-  [**breaking**] update msrv ([#248](https://github.com/beeb/lintspec/pull/248)) - ([c7f8940](https://github.com/beeb/lintspec/commit/c7f8940f28895e3001f01802653aaa5c88bae358))
+
+
+
+
+**Full Changelog**: [0.16.0...0.17.0](https://github.com/beeb/lintspec/compare/v0.16.0...v0.17.0)
+
+
+## [0.16.0] - 2026-03-11
+
+### Added
+
+
+-  add `--stdout` and `--exit-zero` cli flags ([#236](https://github.com/beeb/lintspec/pull/236)) - ([230b469](https://github.com/beeb/lintspec/commit/230b469ff467ee3d39e294a82b8f53476cb07447))
+-  [**breaking**] add `-n` to specify parallelism ([#240](https://github.com/beeb/lintspec/pull/240)) - ([2d59f14](https://github.com/beeb/lintspec/commit/2d59f14270e05233bf4131e3e7176d149c07281f))
+
+### Changed
+
+- **(deps)** update toml version ([#239](https://github.com/beeb/lintspec/pull/239)) - ([747c9aa](https://github.com/beeb/lintspec/commit/747c9aa2d9cf67790cbea297d2b8d2ab70432525))
+
+
+
+
+
+
+**Full Changelog**: [0.15.0...0.16.0](https://github.com/beeb/lintspec/compare/v0.15.0...v0.16.0)
+
+
+## [0.15.0] - 2026-02-15
+
+### Changed
+
+- **(error)** [**breaking**] rename enum to ErrorKind and create boxed Error type ([#228](https://github.com/beeb/lintspec/pull/228)) - ([6b85ad9](https://github.com/beeb/lintspec/commit/6b85ad9a2f290d2398f9187d7413ce39f56b4082))
+
+
+
+
+
+
+**Full Changelog**: [0.14.0...0.15.0](https://github.com/beeb/lintspec/compare/v0.14.0...v0.15.0)
+
+
+## [0.14.0] - 2026-02-11
+
+### Changed
+
+
+-  [**breaking**] faster printing (compact) ([#225](https://github.com/beeb/lintspec/pull/225)) - ([e36cfbf](https://github.com/beeb/lintspec/commit/e36cfbfc731f357c1dc88b2b4a4c2ce29808a274))
+
+### Documentation
+
+- **(core)** move to README ([#220](https://github.com/beeb/lintspec/pull/220)) - ([4feb91a](https://github.com/beeb/lintspec/commit/4feb91a394d8d21dcbb7bf42a882e8e3ac4bcfff))
+
+
+
+
+
+
+**Full Changelog**: [0.13.0...0.14.0](https://github.com/beeb/lintspec/compare/v0.13.0...v0.14.0)
+
+
+## [0.13.0] - 2026-02-10
+
+### Changed
+
+
+-  [**breaking**] split logic into core crate ([#216](https://github.com/beeb/lintspec/pull/216)) - ([fea17ce](https://github.com/beeb/lintspec/commit/fea17ce886823d59b2dc5c1f3f9a217258d154d8))
+
+### Documentation
+
+
+-  fix readme ([#218](https://github.com/beeb/lintspec/pull/218)) - ([f47acff](https://github.com/beeb/lintspec/commit/f47acff2a2e0b4b5f66b82c9a3e078280cf22e54))
+
+### Fixed
+
+
+-  derive ValueEnum for types used in clap ([#217](https://github.com/beeb/lintspec/pull/217)) - ([b2b045c](https://github.com/beeb/lintspec/commit/b2b045cf4fb796a83036223bf08a0c3c15a47d76))
+
+
+
+
+**Full Changelog**: [0.12.2...0.13.0](https://github.com/beeb/lintspec/compare/v0.12.2...v0.13.0)
+
+
 ## [0.12.2] - 2025-12-22
 
 ### Changed

@@ -20,7 +20,7 @@
   /></a>
   <a href="https://docs.rs/lintspec/latest/lintspec/"><img
       alt="MSRV"
-      src="https://img.shields.io/badge/MSRV-1.89.0-b83fbf?style=flat&labelColor=555555&logo=docs.rs"
+      src="https://img.shields.io/badge/MSRV-1.94.1-b83fbf?style=flat&labelColor=555555&logo=docs.rs"
       height="20"
   /></a>
   <a href="https://codspeed.io/beeb/lintspec"><img
@@ -72,11 +72,11 @@ Although the default parser backend is now the very fast [`solar`](https://githu
 [`slang`](https://github.com/NomicFoundation/slang) parser is still available when installing with `cargo install`.
 
 ```bash
-cargo install lintspec --no-default-features -F cli,slang
+cargo install lintspec --no-default-features -F slang
 ```
 
-This feature exposes an additional CLI flag `--skip-version-detection` which can help if `slang` doesn't support
-the version of Solidity you target. Note that enabling `slang` makes the program ~7x slower than with the default features.
+This feature exposes an additional CLI flag `--skip-version-detection` which can help if `slang` doesn't support the
+version of Solidity you target. Note that enabling `slang` makes the program ~7x slower compared to the default.
 
 ## Usage
 
@@ -98,6 +98,7 @@ Options:
       --inheritdoc               Enforce that all public and external items have `@inheritdoc`
       --inheritdoc-override      Enforce that `override` internal functions and modifiers have `@inheritdoc`
       --notice-or-dev            Do not distinguish between `@notice` and `@dev` when considering "required" validation rules
+  -n, --parallel <THREADS>       Number of parallel workers/threads, or 0 to use the number of logical cores
       --title-ignored <TYPE>     Ignore `@title` for these items (can be used more than once)
       --title-required <TYPE>    Enforce `@title` for these items (can be used more than once)
       --title-forbidden <TYPE>   Forbid `@title` for these items (can be used more than once)
@@ -119,6 +120,8 @@ Options:
       --json                     Output diagnostics in JSON format
       --compact                  Compact output
       --sort                     Sort the results by file path
+  -s, --stdout                   Write diagnostics to stdout instead of stderr
+  -0, --exit-zero                Exit with code 0 even when there are diagnostics
   -h, --help                     Print help (see more with '--help')
   -V, --version                  Print version
 ```
@@ -136,16 +139,16 @@ lintspec init
 This will create a `.lintspec.toml` file with the default configuration in the current directory. Check out the
 [example file](https://github.com/beeb/lintspec/blob/main/.lintspec.toml) for more information.
 
-All items for which the default configuration suits you can be removed from the file if desired. Note that some
-settings could change their default value in the future (in a new major release) which could alter behavior if they are
-not specified.
+All items for which the default configuration suits you can be removed from the file if desired. Note that some settings
+could change their default value in the future (in a new major release) which could alter behavior if they are not
+specified.
 
 ### Environment Variables
 
-Environment variables (in capitals, with the `LS_` prefix) can also be used and take precedence over the
-configuration file. They use the same names as in the TOML config file and use the `_` character as delimiter for
-nested items.
-An additional `LS_CONFIG_PATH` variable is available to set an optional path to the TOML file (the default is `./.lintspec.toml`).
+Environment variables (in capitals, with the `LS_` prefix) can also be used and take precedence over the configuration
+file. They use the same names as in the TOML config file and use the `_` character as delimiter for nested items. An
+additional `LS_CONFIG_PATH` variable is available to set an optional path to the TOML file (the default is
+`./.lintspec.toml`).
 
 Examples:
 
@@ -158,11 +161,24 @@ Examples:
 
 ### CLI Arguments
 
-Finally, the tool can be customized with command-line arguments, which take precedence over the other two methods.
-To see the CLI usage information, run:
+Finally, the tool can be customized with command-line arguments, which take precedence over the other two methods. To
+see the CLI usage information, run:
 
 ```bash
 lintspec help
+```
+
+For arguments (`--[TYPE]--required`, `--[TYPE]--ignored`, `--[TYPE]--forbidden`) which expect an "item", the following
+values are available:
+
+```text
+# for @title and @author
+contract, interface, library
+# for others
+contract, interface, library, constructor, enum,
+error, event,private-function, internal-function,
+public-function, external-function, modifier, struct,
+private-variable, internal-variable, public-variable
 ```
 
 ## Usage in GitHub Actions
@@ -178,14 +194,14 @@ that are displayed in the source files when viewed (e.g. in a PR's "Files" tab).
 
 The following options are available for the action (all are optional if a config file is present):
 
-| Input | Default Value | Description | Example |
-|---|---|---|---|
-| `working-directory` | `"./"` | Working directory path | `"./src"` |
-| `paths` | `"[]"` | Paths to scan, relative to the working directory, in square brackets and separated by commas. Required unless a `.lintspec.toml` file is present in the working directory. | `"[path/to/file.sol,test/test.sol]"` |
-| `exclude` | `"[]"` | Paths to exclude, relative to the working directory, in square brackets and separated by commas | `"[path/to/exclude,other/path.sol]"` |
-| `extra-args` | | Extra arguments passed to the `lintspec` command | `"--inheritdoc=false"` |
-| `version` | `"latest"` | Version of lintspec to use. For enhanced security, you can pin this to a fixed version | `"0.9.0"` |
-| `fail-on-problem` | `"true"` | Whether the action should fail when `NatSpec` problems have been found. Disabling this only creates annotations for found problems, but succeeds | `"false"` |
+| Input               | Default Value | Description                                                                                                                                                                | Example                              |
+| ------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `working-directory` | `"./"`        | Working directory path                                                                                                                                                     | `"./src"`                            |
+| `paths`             | `"[]"`        | Paths to scan, relative to the working directory, in square brackets and separated by commas. Required unless a `.lintspec.toml` file is present in the working directory. | `"[path/to/file.sol,test/test.sol]"` |
+| `exclude`           | `"[]"`        | Paths to exclude, relative to the working directory, in square brackets and separated by commas                                                                            | `"[path/to/exclude,other/path.sol]"` |
+| `extra-args`        |               | Extra arguments passed to the `lintspec` command                                                                                                                           | `"--inheritdoc=false"`               |
+| `version`           | `"latest"`    | Version of lintspec to use. For enhanced security, you can pin this to a fixed version                                                                                     | `"0.9.0"`                            |
+| `fail-on-problem`   | `"true"`      | Whether the action should fail when `NatSpec` problems have been found. Disabling this only creates annotations for found problems, but succeeds                           | `"false"`                            |
 
 ### Example Workflow
 
@@ -200,7 +216,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: beeb/lintspec@v0.11.3
+      - uses: beeb/lintspec@v0.12.2
         # all the lines below are optional
         with:
           working-directory: "./"
@@ -213,32 +229,29 @@ jobs:
 
 ## Usage as a Library
 
-`lintspec` can be used as a library, in which case the Solidity parser and CLI-specific dependencies are optional.
+The core functionality is available as a separate crate `lintspec-core`, which contains the parsing and validation logic
+without CLI dependencies.
 
 ```bash
-cargo add --no-default-features lintspec
+cargo add lintspec-core
 ```
 
 Alternatively, in `Cargo.toml`:
 
 ```toml
 [dependencies]
-lintspec = { version = "0.11.3", default-features = false }
+lintspec-core = "0.12.2"
 ```
 
 ### Feature flags
 
-All feature flags are optional when used as a library. To compile the binary, at least the `cli` flag and one of the
-parser flags must be enabled.
-
-- `cli`: enables compilation as a binary and provides the required dependencies (default)
 - `solar`: enables the `solar_parse` parser backend (default)
 - `slang`: enables the `slang_solidity` parser backend
 
 ## Credits
 
-This tool walks in the footsteps of [natspec-smells](https://github.com/defi-wonderland/natspec-smells), thanks to
-them for inspiring this project!
+This tool walks in the footsteps of [natspec-smells](https://github.com/defi-wonderland/natspec-smells), thanks to them
+for inspiring this project!
 
 ## Comparison with natspec-smells
 
@@ -264,20 +277,20 @@ Summary
 ### Features
 
 | Feature                         | `lintspec` | `natspec-smells` |
-|---------------------------------|------------|------------------|
-| Identify missing NatSpec        | ✅          | ✅                |
-| Identify duplicate NatSpec      | ✅          | ✅                |
-| Include files/folders           | ✅          | ✅                |
-| Exclude files/folders           | ✅          | ✅                |
-| Enforce usage of `@inheritdoc`  | ✅          | ✅                |
-| Enforce NatSpec on constructors | ✅          | ✅                |
-| Configure via config file       | ✅          | ✅                |
-| Configure via env variables     | ✅          | ❌                |
-| Respects gitignore files        | ✅          | ❌                |
-| Granular validation rules       | ✅          | ❌                |
-| Pretty output with code excerpt | ✅          | ❌                |
-| JSON output                     | ✅          | ❌                |
-| Output to file                  | ✅          | ❌                |
-| Multithreaded                   | ✅          | ❌                |
-| Built-in CI action              | ✅          | ❌                |
-| No pre-requisites (node/npm)    | ✅          | ❌                |
+| ------------------------------- | ---------- | ---------------- |
+| Identify missing NatSpec        | ✅         | ✅               |
+| Identify duplicate NatSpec      | ✅         | ✅               |
+| Include files/folders           | ✅         | ✅               |
+| Exclude files/folders           | ✅         | ✅               |
+| Enforce usage of `@inheritdoc`  | ✅         | ✅               |
+| Enforce NatSpec on constructors | ✅         | ✅               |
+| Configure via config file       | ✅         | ✅               |
+| Configure via env variables     | ✅         | ❌               |
+| Respects gitignore files        | ✅         | ❌               |
+| Granular validation rules       | ✅         | ❌               |
+| Pretty output with code excerpt | ✅         | ❌               |
+| JSON output                     | ✅         | ❌               |
+| Output to file                  | ✅         | ❌               |
+| Multithreaded                   | ✅         | ❌               |
+| Built-in CI action              | ✅         | ❌               |
+| No pre-requisites (node/npm)    | ✅         | ❌               |

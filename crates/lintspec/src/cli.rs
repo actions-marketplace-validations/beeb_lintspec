@@ -4,8 +4,10 @@ use std::{
     error::Error,
     fs::{self, File},
     io,
+    num::NonZero,
     path::{Path, PathBuf},
     sync::Arc,
+    thread::available_parallelism,
 };
 
 use clap::{Parser, Subcommand};
@@ -13,7 +15,7 @@ use clap_complete::Shell;
 use miette::{LabeledSpan, MietteDiagnostic, NamedSource};
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator};
 
-use crate::{
+use lintspec_core::{
     config::{Config, Req},
     definitions::{ContractType, ItemType},
     files::find_sol_files,
@@ -22,10 +24,10 @@ use crate::{
 };
 
 #[cfg(feature = "slang")]
-use crate::parser::slang::SlangParser;
+use lintspec_core::parser::slang::SlangParser;
 
 #[cfg(feature = "solar")]
-use crate::parser::solar::SolarParser;
+use lintspec_core::parser::solar::SolarParser;
 
 #[cfg(not(feature = "slang"))]
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -97,6 +99,12 @@ pub struct Args {
     #[arg(long, num_args = 0..=1, default_missing_value = "true")]
     pub notice_or_dev: Option<bool>,
 
+    /// Number of parallel workers/threads, or 0 to use the number of logical cores
+    ///
+    /// Defaults to 4 for a good balance of parallelism and synchronization overhead.
+    #[arg(short = 'n', long, name = "THREADS")]
+    pub parallel: Option<usize>,
+
     /// Skip the detection of the Solidity version from pragma statements and use the latest supported version.
     ///
     /// This is useful to speed up parsing slightly, or if the Solidity version is newer than the latest version
@@ -108,107 +116,107 @@ pub struct Args {
     pub skip_version_detection: Option<bool>,
 
     /// Ignore `@title` for these items (can be used more than once)
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub title_ignored: Vec<ContractType>,
 
     /// Enforce `@title` for these items (can be used more than once)
     ///
     /// This takes precedence over `--title-ignored`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub title_required: Vec<ContractType>,
 
     /// Forbid `@title` for these items (can be used more than once)
     ///
     /// This takes precedence over `--title-required`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub title_forbidden: Vec<ContractType>,
 
     /// Ignore `@author` for these items (can be used more than once)
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub author_ignored: Vec<ContractType>,
 
     /// Enforce `@author` for these items (can be used more than once)
     ///
     /// This takes precedence over `--author-ignored`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub author_required: Vec<ContractType>,
 
     /// Forbid `@author` for these items (can be used more than once)
     ///
     /// This takes precedence over `--author-required`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub author_forbidden: Vec<ContractType>,
 
     /// Ignore `@notice` for these items (can be used more than once)
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub notice_ignored: Vec<ItemType>,
 
     /// Enforce `@notice` for these items (can be used more than once)
     ///
     /// This takes precedence over `--notice-ignored`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub notice_required: Vec<ItemType>,
 
     /// Forbid `@notice` for these items (can be used more than once)
     ///
     /// This takes precedence over `--notice-required`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub notice_forbidden: Vec<ItemType>,
 
     /// Ignore `@dev` for these items (can be used more than once)
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub dev_ignored: Vec<ItemType>,
 
     /// Enforce `@dev` for these items (can be used more than once)
     ///
     /// This takes precedence over `--dev-ignored`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub dev_required: Vec<ItemType>,
 
     /// Forbid `@dev` for these items (can be used more than once)
     ///
     /// This takes precedence over `--dev-required`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub dev_forbidden: Vec<ItemType>,
 
     /// Ignore `@param` for these items (can be used more than once)
     ///
     /// Note that this setting is ignored for `*-variable`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub param_ignored: Vec<ItemType>,
 
     /// Enforce `@param` for these items (can be used more than once)
     ///
     /// Note that this setting is ignored for `*-variable`.
     /// This takes precedence over `--param-ignored`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub param_required: Vec<ItemType>,
 
     /// Forbid `@param` for these items (can be used more than once)
     ///
     /// Note that this setting is ignored for `*-variable`.
     /// This takes precedence over `--param-required`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub param_forbidden: Vec<ItemType>,
 
     /// Ignore `@return` for these items (can be used more than once)
     ///
     /// Note that this setting is only applicable for `*-function`, `public-variable`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub return_ignored: Vec<ItemType>,
 
     /// Enforce `@return` for these items (can be used more than once)
     ///
     /// Note that this setting is only applicable for `*-function`, `public-variable`.
     /// This takes precedence over `--return-ignored`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub return_required: Vec<ItemType>,
 
     /// Forbid `@return` for these items (can be used more than once)
     ///
     /// Note that this setting is only applicable for `*-function`, `public-variable`.
     /// This takes precedence over `--return-required`.
-    #[arg(long)]
+    #[arg(long, value_enum)]
     pub return_forbidden: Vec<ItemType>,
 
     /// Output diagnostics in JSON format
@@ -230,6 +238,18 @@ pub struct Args {
     /// Can be set with `--sort` (means true), `--sort=true` or `--sort=false`.
     #[arg(long, num_args = 0..=1, default_missing_value = "true")]
     pub sort: Option<bool>,
+
+    /// Write diagnostics to stdout instead of stderr (when no `--out` file is specified)
+    ///
+    /// Can be set with `--stdout` (means true), `--stdout=true` or `--stdout=false`.
+    #[arg(short = 's', long, num_args = 0..=1, default_missing_value = "true")]
+    pub stdout: Option<bool>,
+
+    /// Exit with code 0 even when there are diagnostics
+    ///
+    /// Can be set with `--exit-zero` (means true), `--exit-zero=true` or `--exit-zero=false`.
+    #[arg(short = '0', long, num_args = 0..=1, default_missing_value = "true")]
+    pub exit_zero: Option<bool>,
 
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -315,7 +335,10 @@ pub fn read_config(args: Args) -> Result<Config, Box<figment::Error>> {
         .config
         .or_else(|| env::var("LS_CONFIG_PATH").ok().map(Into::into));
     let mut config: Config = Config::figment(config_path).extract()?;
-    // paths
+    // general
+    if let Some(par) = args.parallel {
+        config.lintspec.parallel = par;
+    }
     config.lintspec.paths.extend(args.paths);
     config.lintspec.exclude.extend(args.exclude);
     // output
@@ -330,6 +353,12 @@ pub fn read_config(args: Args) -> Result<Config, Box<figment::Error>> {
     }
     if let Some(sort) = args.sort {
         config.output.sort = sort;
+    }
+    if let Some(stdout) = args.stdout {
+        config.output.stdout = stdout;
+    }
+    if let Some(exit_zero) = args.exit_zero {
+        config.output.exit_zero = exit_zero;
     }
     // parser
     #[cfg(feature = "slang")]
@@ -376,12 +405,14 @@ pub enum RunResult {
 }
 
 /// Run lintspec
+#[expect(clippy::too_many_lines)]
 pub fn run(config: &Config) -> Result<RunResult, Box<dyn Error>> {
     // identify Solidity files to parse
     let paths = find_sol_files(
         &config.lintspec.paths,
         &config.lintspec.exclude,
         config.output.sort,
+        config.lintspec.parallel,
     )?;
     if paths.is_empty() {
         return Err(String::from("no Solidity file found, nothing to analyze").into());
@@ -399,18 +430,42 @@ pub fn run(config: &Config) -> Result<RunResult, Box<dyn Error>> {
         .skip_version_detection(config.lintspec.skip_version_detection)
         .build();
 
-    let diagnostics = paths
-        .par_iter()
-        .filter_map(|p| {
-            lint(
-                parser.clone(),
-                p,
-                &options,
-                !config.output.compact && !config.output.json,
-            )
-            .transpose()
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let threads = if config.lintspec.parallel == 0 {
+        available_parallelism().map_or(1, NonZero::get)
+    } else {
+        config.lintspec.parallel
+    };
+    let diagnostics = if threads == 1 {
+        paths
+            .into_iter()
+            .filter_map(|p| {
+                lint(
+                    parser.clone(),
+                    p,
+                    &options,
+                    !config.output.compact && !config.output.json,
+                )
+                .transpose()
+            })
+            .collect::<Result<Vec<_>, _>>()?
+    } else {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .ok();
+        paths
+            .par_iter()
+            .filter_map(|p| {
+                lint(
+                    parser.clone(),
+                    p,
+                    &options,
+                    !config.output.compact && !config.output.json,
+                )
+                .transpose()
+            })
+            .collect::<Result<Vec<_>, _>>()?
+    };
 
     // check if we should output to file or to stderr/stdout
     let mut output_file: Box<dyn std::io::Write> = match &config.output.out {
@@ -430,14 +485,14 @@ pub fn run(config: &Config) -> Result<RunResult, Box<dyn Error>> {
                     .create(true)
                     .write(true)
                     .open(path)
-                    .map_err(|err| crate::error::Error::IOError {
+                    .map_err(|err| lintspec_core::error::ErrorKind::IOError {
                         path: path.clone(),
                         err,
                     })?,
             )
         }
         None => {
-            if diagnostics.is_empty() {
+            if diagnostics.is_empty() || config.output.stdout {
                 Box::new(std::io::stdout())
             } else {
                 Box::new(std::io::stderr())
@@ -497,7 +552,7 @@ pub fn write_default_config() -> Result<PathBuf, Box<dyn Error>> {
     let path = PathBuf::from(".lintspec.toml");
     if path.exists() {
         fs::rename(&path, ".lintspec.bck.toml")?;
-        println!("Existing `.lintspec.toml` file was renamed to `.lintpsec.bck.toml`");
+        println!("Existing `.lintspec.toml` file was renamed to `.lintspec.bck.toml`");
     }
     fs::write(&path, toml::to_string(&config)?)?;
     Ok(dunce::canonicalize(&path)?)
@@ -523,8 +578,12 @@ pub fn print_reports(
         compact: bool,
     ) -> Result<(), io::Error> {
         if compact {
+            let source_name = match file_diags.path.strip_prefix(root_path) {
+                Ok(relative_path) => relative_path.to_string_lossy(),
+                Err(_) => file_diags.path.to_string_lossy(),
+            };
             for item_diags in file_diags.items {
-                item_diags.print_compact(f, &file_diags.path, root_path)?;
+                item_diags.print_compact(f, &source_name)?;
             }
         } else {
             let source_name = match file_diags.path.strip_prefix(root_path) {

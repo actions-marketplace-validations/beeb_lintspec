@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [0.3.0] - 2026-05-10
+
+### Changed
+
+
+-  [**breaking**] update msrv ([#248](https://github.com/beeb/lintspec/pull/248)) - ([c7f8940](https://github.com/beeb/lintspec/commit/c7f8940f28895e3001f01802653aaa5c88bae358))
+
+
+
+
+**Full Changelog**: [0.2.4...0.3.0](https://github.com/beeb/lintspec/compare/v0.2.4...v0.3.0)
+
+
+## [0.2.4] - 2026-03-11
+
+### Added
+
+
+-  add `--stdout` and `--exit-zero` cli flags ([#236](https://github.com/beeb/lintspec/pull/236)) - ([230b469](https://github.com/beeb/lintspec/commit/230b469ff467ee3d39e294a82b8f53476cb07447))
+
+
+
+
+**Full Changelog**: [0.2.3...0.2.4](https://github.com/beeb/lintspec/compare/v0.2.3...v0.2.4)
+
+
+## [0.2.3] - 2026-02-11
+
+### Documentation
+
+- **(core)** move to README ([#220](https://github.com/beeb/lintspec/pull/220)) - ([4feb91a](https://github.com/beeb/lintspec/commit/4feb91a394d8d21dcbb7bf42a882e8e3ac4bcfff))
+
+
+
+
+
+
+**Full Changelog**: [0.2.2...0.2.3](https://github.com/beeb/lintspec/compare/v0.2.2...v0.2.3)
+
+
 ## [0.2.2] - 2025-12-22
 
 ### Changed

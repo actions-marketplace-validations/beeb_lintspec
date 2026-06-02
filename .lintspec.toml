@@ -4,12 +4,15 @@ exclude = []                # paths to files or folders to exclude, see also `.n
 inheritdoc = true           # enforce that all public and external items have `@inheritdoc`
 inheritdoc_override = false # enforce that `override` internal functions and modifiers have `@inheritdoc`
 notice_or_dev = false       # do not distinguish between `@notice` and `@dev` when considering "required" validation rules
+parallel = 4                # specify the number of parallel workers/threads, or 0 for the number of logical cores
 
 [output]
 # out = ""        # if provided, redirects output to a file
-json = false    # output diagnostics as JSON
-compact = false # compact output (minified JSON or compact text)
-sort = false    # sort results by file path
+json = false      # output diagnostics as JSON
+compact = false   # compact output (minified JSON or compact text)
+sort = false      # sort results by file path
+stdout = false    # write diagnostics to stdout instead of stderr (when no `out` file is specified)
+exit_zero = false # exit with code 0 even when there are diagnostics
 
 # for all items below, the accepted values are `ignored`, `required` and `forbidden`.
 

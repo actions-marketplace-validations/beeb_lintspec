@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used)]
+#![expect(clippy::unwrap_used)]
 use std::process::Command;
 
 use divan::Bencher;
@@ -8,15 +8,13 @@ fn main() {
     divan::main();
 }
 
-#[cfg(all(feature = "cli", feature = "solar"))]
+#[cfg(feature = "solar")]
 #[divan::bench]
 fn e2e_uniswap(bencher: Bencher) {
     use std::sync::Arc;
 
-    use lintspec::{
-        cli::run,
-        config::{BaseConfig, Config, OutputConfig},
-    };
+    use lintspec::cli::run;
+    use lintspec_core::config::{BaseConfig, Config, OutputConfig};
 
     let d = TempDir::new().unwrap();
     let mut git = Command::new("git");
@@ -39,6 +37,7 @@ fn e2e_uniswap(bencher: Bencher) {
         .lintspec(
             BaseConfig::builder()
                 .paths(vec![d.child("v4-core/src")])
+                .parallel(1)
                 .build(),
         )
         .output(
